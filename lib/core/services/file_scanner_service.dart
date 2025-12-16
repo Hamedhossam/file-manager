@@ -26,7 +26,7 @@ class FileScannerService {
                   path: entity.path,
                   extension: ext,
                   size: fileStat.size,
-                  lastModified: fileStat.modified,
+                  modifiedDate: fileStat.modified,
                   selected: false, // Always start unselected
                 ),
               );

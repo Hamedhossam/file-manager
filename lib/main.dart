@@ -13,10 +13,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => FileManagerCubit(),
+      create: (_) => EnhancedFileManagerCubit(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: const FileManagerPage(),
+        home: const EnhancedFileManagerPage(),
       ),
     );
   }

@@ -6,7 +6,7 @@ class FileItem extends Equatable {
   final String extension;
   final bool selected;
   final int size;
-  final DateTime lastModified;
+  final DateTime modifiedDate;
 
   const FileItem({
     required this.path,
@@ -14,7 +14,7 @@ class FileItem extends Equatable {
     required this.extension,
     this.selected = false,
     required this.size,
-    required this.lastModified,
+    required this.modifiedDate,
   });
 
   // IMPORTANT: Use copyWith to create new instances instead of mutating
@@ -24,7 +24,7 @@ class FileItem extends Equatable {
     String? extension,
     bool? selected,
     int? size,
-    DateTime? lastModified,
+    DateTime? modifiedDate,
   }) {
     return FileItem(
       path: path ?? this.path,
@@ -32,7 +32,7 @@ class FileItem extends Equatable {
       extension: extension ?? this.extension,
       selected: selected ?? this.selected,
       size: size ?? this.size,
-      lastModified: lastModified ?? this.lastModified,
+      modifiedDate: modifiedDate ?? this.modifiedDate,
     );
   }
 
@@ -43,6 +43,6 @@ class FileItem extends Equatable {
     extension,
     selected,
     size,
-    lastModified,
+    modifiedDate,
   ];
 }

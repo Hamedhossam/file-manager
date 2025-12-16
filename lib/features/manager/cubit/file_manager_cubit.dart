@@ -1,209 +1,177 @@
+import 'dart:async';
+import 'package:files_manager/core/models/file_item.dart';
+import 'package:files_manager/features/manager/cubit/file_manager_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'file_manager_state.dart';
-import '../../../core/services/file_scanner_service.dart';
-import 'package:file_picker/file_picker.dart';
-import 'dart:io';
 
-class FileManagerCubit extends Cubit<FileManagerState> {
-  FileManagerCubit() : super(const FileManagerState());
+class EnhancedFileManagerCubit extends Cubit<EnhancedFileManagerState> {
+  EnhancedFileManagerCubit() : super(const EnhancedFileManagerState());
 
-  final List<String> allowedExtensions = ['psd', 'jpg', 'png'];
+  Timer? _searchDebouncer;
 
-  Future<void> pickAndScanFolder() async {
-    emit(state.copyWith(loading: true));
-
-    try {
-      final path = await FilePicker.platform.getDirectoryPath();
-      if (path == null) {
-        emit(state.copyWith(loading: false));
-        return;
-      }
-
-      final files = await FileScannerService.scanDirectory(
-        path,
-        allowedExtensions,
-      );
-
-      emit(
-        state.copyWith(
-          loading: false,
-          files: files,
-          filteredFiles: files,
-          selectedPath: path,
-          activeExtension: 'all',
-          error: null,
-        ),
-      );
-    } catch (e) {
-      emit(state.copyWith(loading: false, error: 'Failed to scan folder: $e'));
-    }
+  // Change view mode
+  void setViewMode(ViewMode mode) {
+    emit(state.copyWith(viewMode: mode));
   }
 
-  void filterByExtension(String? ext) {
-    final filteredList = ext == null || ext == 'all'
-        ? state.files
-        : state.files.where((f) => f.extension == ext).toList();
+  // Adjust grid size
+  void setGridSize(double size) {
+    emit(state.copyWith(gridSize: size.clamp(1.0, 3.0)));
+  }
+
+  // Search with debouncing (performance optimization)
+  void search(String query) {
+    _searchDebouncer?.cancel();
+    _searchDebouncer = Timer(const Duration(milliseconds: 300), () {
+      _performSearch(query);
+    });
+  }
+
+  void _performSearch(String query) {
+    if (query.isEmpty) {
+      emit(
+        state.copyWith(
+          searchQuery: '',
+          filteredFiles: _applyFilters(state.files),
+          currentPage: 0,
+        ),
+      );
+      return;
+    }
+
+    final searchLower = query.toLowerCase();
+    final filtered = state.files.where((file) {
+      return file.name.toLowerCase().contains(searchLower);
+    }).toList();
 
     emit(
       state.copyWith(
-        filteredFiles: filteredList,
-        activeExtension: ext ?? 'all',
+        searchQuery: query,
+        filteredFiles: _applySorting(filtered),
+        currentPage: 0,
       ),
     );
   }
 
-  // FIX: Toggle selection using file path as identifier instead of index
-  void toggleSelection(String filePath) {
-    final updatedFiles = state.files.map((file) {
-      if (file.path == filePath) {
-        return file.copyWith(selected: !file.selected);
-      }
-      return file;
-    }).toList();
+  // Sorting
+  void setSorting(SortBy sortBy, [SortOrder? order]) {
+    final newOrder =
+        order ??
+        (state.sortBy == sortBy && state.sortOrder == SortOrder.asc
+            ? SortOrder.desc
+            : SortOrder.asc);
 
-    // Reapply current filter to maintain consistency
-    final filteredList =
-        state.activeExtension == null || state.activeExtension == 'all'
-        ? updatedFiles
-        : updatedFiles
-              .where((f) => f.extension == state.activeExtension)
-              .toList();
-
-    emit(state.copyWith(files: updatedFiles, filteredFiles: filteredList));
+    emit(
+      state.copyWith(
+        sortBy: sortBy,
+        sortOrder: newOrder,
+        filteredFiles: _applySorting(state.filteredFiles),
+      ),
+    );
   }
 
-  // New: Select/Deselect all visible files
-  void toggleSelectAll() {
-    final allSelected = state.filteredFiles.every((f) => f.selected);
+  List<FileItem> _applySorting(List<FileItem> files) {
+    final sorted = List<FileItem>.from(files);
 
-    final updatedFiles = state.files.map((file) {
-      // Only toggle files that are currently visible
-      if (state.filteredFiles.any((f) => f.path == file.path)) {
-        return file.copyWith(selected: !allSelected);
-      }
-      return file;
-    }).toList();
-
-    final filteredList =
-        state.activeExtension == null || state.activeExtension == 'all'
-        ? updatedFiles
-        : updatedFiles
-              .where((f) => f.extension == state.activeExtension)
-              .toList();
-
-    emit(state.copyWith(files: updatedFiles, filteredFiles: filteredList));
-  }
-
-  // New: Clear all selections
-  void clearSelection() {
-    final updatedFiles = state.files.map((file) {
-      return file.copyWith(selected: false);
-    }).toList();
-
-    final filteredList =
-        state.activeExtension == null || state.activeExtension == 'all'
-        ? updatedFiles
-        : updatedFiles
-              .where((f) => f.extension == state.activeExtension)
-              .toList();
-
-    emit(state.copyWith(files: updatedFiles, filteredFiles: filteredList));
-  }
-
-  Future<void> moveSelectedFiles() async {
-    final selectedFiles = state.files.where((f) => f.selected).toList();
-
-    if (selectedFiles.isEmpty) {
-      emit(state.copyWith(error: 'No files selected'));
-      return;
+    switch (state.sortBy) {
+      case SortBy.name:
+        sorted.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case SortBy.date:
+        sorted.sort((a, b) => a.modifiedDate.compareTo(b.modifiedDate));
+        break;
+      case SortBy.size:
+        sorted.sort((a, b) => a.size.compareTo(b.size));
+        break;
+      case SortBy.type:
+        sorted.sort((a, b) => a.extension.compareTo(b.extension));
+        break;
     }
 
-    final targetDir = await FilePicker.platform.getDirectoryPath();
-    if (targetDir == null) return;
+    if (state.sortOrder == SortOrder.desc) {
+      return sorted.reversed.toList();
+    }
+    return sorted;
+  }
 
-    emit(state.copyWith(loading: true));
+  List<FileItem> _applyFilters(List<FileItem> files) {
+    var filtered = files;
 
-    try {
-      int successCount = 0;
-      int failCount = 0;
-
-      for (final file in selectedFiles) {
-        try {
-          final newPath = '$targetDir/${file.name}';
-          await File(file.path).rename(newPath);
-          successCount++;
-        } catch (e) {
-          failCount++;
-          print('Failed to move ${file.name}: $e');
-        }
-      }
-
-      // Remove successfully moved files
-      final remaining = state.files
-          .where((f) => !f.selected || failCount > 0)
+    // Extension filter
+    if (state.activeExtension != null && state.activeExtension != 'all') {
+      filtered = filtered
+          .where((f) => f.extension == state.activeExtension)
           .toList();
+    }
 
-      // Reapply filter
-      final filteredList =
-          state.activeExtension == null || state.activeExtension == 'all'
-          ? remaining
-          : remaining
-                .where((f) => f.extension == state.activeExtension)
-                .toList();
+    // Search filter
+    if (state.searchQuery.isNotEmpty) {
+      final query = state.searchQuery.toLowerCase();
+      filtered = filtered
+          .where((f) => f.name.toLowerCase().contains(query))
+          .toList();
+    }
 
+    return _applySorting(filtered);
+  }
+
+  // Load more items (pagination)
+  void loadMore() {
+    if (state.loading) return;
+
+    final hasMore =
+        ((state.currentPage + 1) * state.itemsPerPage) <
+        state.filteredFiles.length;
+
+    if (hasMore) {
       emit(
-        state.copyWith(
-          loading: false,
-          files: remaining,
-          filteredFiles: filteredList,
-          error: failCount > 0
-              ? 'Moved $successCount files, failed $failCount'
-              : 'Successfully moved $successCount files',
-        ),
+        state.copyWith(currentPage: state.currentPage + 1, hasMore: hasMore),
       );
-    } catch (e) {
-      emit(state.copyWith(loading: false, error: 'Failed to move files: $e'));
     }
   }
 
-  // New: Refresh current folder
-  Future<void> refreshFolder() async {
-    if (state.selectedPath != null) {
-      emit(state.copyWith(loading: true));
+  // Optimized selection using Set
+  void toggleSelection(String filePath) {
+    final newSelection = Set<String>.from(state.selectedFilePaths);
 
-      try {
-        final files = await FileScannerService.scanDirectory(
-          state.selectedPath!,
-          allowedExtensions,
-        );
-
-        final filteredList =
-            state.activeExtension == null || state.activeExtension == 'all'
-            ? files
-            : files.where((f) => f.extension == state.activeExtension).toList();
-
-        emit(
-          state.copyWith(
-            loading: false,
-            files: files,
-            filteredFiles: filteredList,
-            error: null,
-          ),
-        );
-      } catch (e) {
-        emit(state.copyWith(loading: false, error: 'Failed to refresh: $e'));
-      }
+    if (newSelection.contains(filePath)) {
+      newSelection.remove(filePath);
+    } else {
+      newSelection.add(filePath);
     }
+
+    emit(state.copyWith(selectedFilePaths: newSelection));
   }
 
-  // New: Get selection info
-  int get selectedCount => state.files.where((f) => f.selected).length;
+  // Bulk operations
+  void selectAll() {
+    final allPaths = state.filteredFiles.map((f) => f.path).toSet();
+    emit(state.copyWith(selectedFilePaths: allPaths));
+  }
 
-  int get totalSize => state.files
-      .where((f) => f.selected)
-      .fold(0, (sum, file) => sum + file.size);
+  void clearSelection() {
+    emit(state.copyWith(selectedFilePaths: {}));
+  }
 
-  void clearError() {
-    emit(state.copyWith(error: null));
+  // Select range (Shift+Click)
+  void selectRange(int fromIndex, int toIndex) {
+    final start = fromIndex < toIndex ? fromIndex : toIndex;
+    final end = fromIndex < toIndex ? toIndex : fromIndex;
+
+    final rangePaths = state.visibleFiles
+        .sublist(start, end + 1)
+        .map((f) => f.path)
+        .toSet();
+
+    emit(
+      state.copyWith(
+        selectedFilePaths: {...state.selectedFilePaths, ...rangePaths},
+      ),
+    );
+  }
+
+  @override
+  Future<void> close() {
+    _searchDebouncer?.cancel();
+    return super.close();
   }
 }
