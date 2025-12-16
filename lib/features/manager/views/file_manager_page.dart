@@ -11,6 +11,7 @@ import 'package:files_manager/core/models/file_item.dart';
 import 'package:files_manager/core/services/thumbnail_cache_service.dart';
 import 'package:files_manager/features/manager/cubit/file_manager_cubit.dart';
 import 'package:files_manager/features/manager/cubit/file_manager_state.dart';
+import 'package:files_manager/features/manager/cubit/theme_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -186,7 +187,7 @@ class _EnhancedFileManagerPageState extends State<EnhancedFileManagerPage> {
                 ),
                 tooltip: 'Toggle Theme',
                 onPressed: () {
-                  // Toggle theme logic
+                  context.read<ThemeCubit>().changeTheme(context);
                 },
               ),
             ],
@@ -330,6 +331,13 @@ class _EnhancedFileManagerPageState extends State<EnhancedFileManagerPage> {
           DropdownMenuItem(value: 'psd', child: Text('PSD')),
           DropdownMenuItem(value: 'jpg', child: Text('JPG')),
           DropdownMenuItem(value: 'png', child: Text('PNG')),
+          DropdownMenuItem(value: 'jpeg', child: Text('JPEG')),
+          DropdownMenuItem(value: 'gif', child: Text('GIF')),
+          DropdownMenuItem(value: 'bmp', child: Text('BMP')),
+          DropdownMenuItem(value: 'webp', child: Text('WEBP')),
+          DropdownMenuItem(value: 'pdf', child: Text('PDF')),
+          DropdownMenuItem(value: 'ai', child: Text('AI')),
+          DropdownMenuItem(value: 'sketch', child: Text('Sketch')),
         ],
         onChanged: (value) {
           context.read<EnhancedFileManagerCubit>().filterByExtension(

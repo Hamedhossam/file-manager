@@ -15,9 +15,9 @@ class EnhancedFileManagerCubit extends Cubit<EnhancedFileManagerState> {
   final List<String> _allowedExtensions = [
     'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', // Images
     'psd', 'ai', 'sketch', // Design files
-    'pdf', 'doc', 'docx', 'txt', // Documents
-    'mp4', 'mov', 'avi', 'mkv', // Videos
-    'mp3', 'wav', 'flac', // Audio
+    'pdf' /*, 'doc', 'docx', 'txt',*/, // Documents
+    // 'mp4', 'mov', 'avi', 'mkv', // Videos
+    // 'mp3', 'wav', 'flac', // Audio
   ];
 
   // ============================================
@@ -221,7 +221,15 @@ class EnhancedFileManagerCubit extends Cubit<EnhancedFileManagerState> {
 
   List<FileItem> _applyFilters(List<FileItem> files) {
     var filtered = files;
-
+    if (state.activeExtension == null || state.activeExtension == 'all') {
+      // Search filter
+      if (state.searchQuery.isNotEmpty) {
+        final query = state.searchQuery.toLowerCase();
+        filtered = filtered
+            .where((f) => f.name.toLowerCase().contains(query))
+            .toList();
+      }
+    }
     // Extension filter
     if (state.activeExtension != null && state.activeExtension != 'all') {
       filtered = filtered
