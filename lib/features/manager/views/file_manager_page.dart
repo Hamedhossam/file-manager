@@ -67,8 +67,8 @@ class _EnhancedFileManagerPageState extends State<EnhancedFileManagerPage> {
                 behavior: SnackBarBehavior.floating,
                 action: SnackBarAction(
                   label: 'Dismiss',
-                  onPressed: () {},
-                  // context.read<EnhancedFileManagerCubit>().clearError(),
+                  onPressed: () =>
+                      context.read<EnhancedFileManagerCubit>().clearError(),
                 ),
               ),
             );
@@ -332,9 +332,9 @@ class _EnhancedFileManagerPageState extends State<EnhancedFileManagerPage> {
           DropdownMenuItem(value: 'png', child: Text('PNG')),
         ],
         onChanged: (value) {
-          // context.read<EnhancedFileManagerCubit>().filterByExtension(
-          //   value == 'all' ? null : value,
-          // );
+          context.read<EnhancedFileManagerCubit>().filterByExtension(
+            value == 'all' ? null : value,
+          );
         },
       ),
     );
@@ -698,7 +698,7 @@ class _EnhancedFileManagerPageState extends State<EnhancedFileManagerPage> {
           const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: () {
-              // context.read<EnhancedFileManagerCubit>().pickAndScanFolder();
+              context.read<EnhancedFileManagerCubit>().pickAndScanFolder();
             },
             icon: const Icon(Icons.folder),
             label: const Text('Select Folder'),
@@ -758,7 +758,7 @@ class _EnhancedFileManagerPageState extends State<EnhancedFileManagerPage> {
           const SizedBox(width: 8),
           FilledButton.icon(
             onPressed: () {
-              // context.read<EnhancedFileManagerCubit>().moveSelectedFiles();
+              context.read<EnhancedFileManagerCubit>().moveSelectedFiles();
             },
             icon: const Icon(Icons.drive_file_move),
             label: const Text('Move'),
@@ -775,7 +775,7 @@ class _EnhancedFileManagerPageState extends State<EnhancedFileManagerPage> {
         FloatingActionButton(
           heroTag: 'select_folder',
           onPressed: () {
-            // context.read<EnhancedFileManagerCubit>().pickAndScanFolder();
+            context.read<EnhancedFileManagerCubit>().pickAndScanFolder();
           },
           child: const Icon(Icons.folder_open),
         ),
@@ -783,7 +783,7 @@ class _EnhancedFileManagerPageState extends State<EnhancedFileManagerPage> {
         FloatingActionButton(
           heroTag: 'refresh',
           onPressed: () {
-            // context.read<EnhancedFileManagerCubit>().refreshFolder();
+            context.read<EnhancedFileManagerCubit>().refreshFolder();
           },
           child: const Icon(Icons.refresh),
         ),
